@@ -10,6 +10,11 @@
       url = "https://flakehub.com/f/nix-darwin/nix-darwin/0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # home-manager (dotfiles / user packages), release matching nixpkgs 26.05
+    home-manager = {
+      url = "github:nix-community/home-manager/release-26.05";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     # Determinate 3.* module
     determinate = {
       url = "https://flakehub.com/f/DeterminateSystems/determinate/3";
@@ -42,6 +47,17 @@
           self.darwinModules.base
           self.darwinModules.determinateNixConfig
           # Apply any other imported modules here
+          # Homebrew (casks, Mac App Store apps, remaining formulas)
+          ./homebrew.nix
+          # home-manager as a nix-darwin module
+          inputs.home-manager.darwinModules.home-manager
+          {
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+            # Existing files are renamed to *.hm-backup instead of being clobbered
+            home-manager.backupFileExtension = "hm-backup";
+            home-manager.users.${username} = import ./home.nix;
+          }
 
           # In addition to adding modules in the style above, you can also
           # add modules inline like this. Delete this if unnecessary.
@@ -77,6 +93,7 @@
 
             users.users.${username} = {
               name = username;
+              home = "/Users/${username}";
               # See the reference docs for more on user config:
               # https://nix-darwin.github.io/nix-darwin/manual/#opt-users.users
             };
@@ -84,20 +101,20 @@
             # Other configuration parameters
             # See here: https://nix-darwin.github.io/nix-darwin/manual
             system.defaults = {
-                dock = {
-                    autohide = true;
-                    show-recents = false;
-                  };
-                
-                finder = {
-                    ShowPathbar = true;
-                    AppleShowAllExtensions = true;
-                  };
-
-                screencapture = {
-                    target = "clipboard";
-                  };
+              dock = {
+                autohide = true;
+                show-recents = false;
               };
+
+              finder = {
+                ShowPathbar = true;
+                AppleShowAllExtensions = true;
+              };
+
+              screencapture = {
+                target = "clipboard";
+              };
+            };
           };
 
         # Determinate Nix configuration
