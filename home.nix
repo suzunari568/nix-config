@@ -26,7 +26,26 @@
     vim
     watchman
     zoxide
+
+    # Proposed dev tools (SAM-7). Kept in a separate commit so it can be dropped.
+    bat # cat with syntax highlighting
+    delta # git diff pager (not wired into git config; see README)
+    eza # modern ls
+    fd # fast find
+    gh-dash # TUI dashboard for GitHub PRs and issues
+    lazygit # git TUI
+    ripgrep # fast grep (rg)
+    shellcheck # shell script linter
+    uv # Python package/project manager (Python itself stays on mise)
   ];
+
+  # direnv + nix-direnv: per-directory env / `use flake` with caching.
+  # Adds the `direnv hook zsh` line to ~/.zshrc.
+  programs.direnv = {
+    enable = true;
+    nix-direnv.enable = true;
+    enableZshIntegration = true;
+  };
 
   # ---------------------------------------------------------------
   # zsh (~/.zshenv, ~/.zprofile, ~/.zshrc)
