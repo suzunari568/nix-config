@@ -13,6 +13,8 @@ Apple Silicon の Mac（ユーザー `shuya`、ホスト設定 `shuya-aarch64-da
 | git の設定（`~/.config/git/config`） | home-manager（`programs.git`） | `home.nix` |
 | `~/.ssh/config` | home-manager（`programs.ssh`） | `home.nix` |
 | CLI ツール（fzf, gh, ghq, git, neovim, vim, sheldon, starship, zoxide, tree, tenv, sqlite, ffmpeg, watchman） | home-manager（`home.packages`） | `home.nix` |
+| 開発用 CLI ツール（bat, delta, eza, fd, gh-dash, lazygit, ripgrep, shellcheck, uv） | home-manager（`home.packages`） | `home.nix` |
+| direnv + nix-direnv（`~/.zshrc` にフックを追加） | home-manager（`programs.direnv`） | `home.nix` |
 | GUI アプリ（cask）、tap、Mac App Store アプリ、VS Code 拡張 | nix-darwin の `homebrew` モジュール | `homebrew.nix` |
 | Homebrew に残すフォーミュラ（go, python@3.13, openjdk, mise, libpq, mas, docker-compose, runpodctl） | nix-darwin の `homebrew` モジュール | `homebrew.nix` |
 | 言語ランタイム（Python, Go, Java） | mise（Nix では管理しない） | `~/.config/mise/config.toml` を home-manager（`programs.mise`）で生成。`home.nix` |
@@ -22,6 +24,8 @@ Apple Silicon の Mac（ユーザー `shuya`、ホスト設定 `shuya-aarch64-da
 - SSH の秘密鍵など、`~/.ssh/config` 以外のファイルは管理しません。
 - 公開リポジトリに載せたくないホスト（RunPod など）は、管理対象外の `~/.ssh/config.local` に書きます。`~/.ssh/config` が `Include config.local` で読み込みます。
 - sheldon・neovim などの各ツール自体の設定（`~/.config/sheldon` など）は、これまでどおり手で管理します。mise はグローバル設定（`~/.config/mise/config.toml`）だけを home-manager で管理し、mise 本体は Homebrew のままです。
+- delta はインストールするだけで、git の pager には設定していません。使う場合は `programs.delta.enable = true;` と `programs.delta.enableGitIntegration = true;` を追加してください。
+- jq は macOS 標準の `/usr/bin/jq`（1.7.1）があるので追加していません。
 - `homebrew.onActivation` は `cleanup = "none"`、`autoUpdate = false`、`upgrade = false` にしています。適用しても Homebrew のアプリがアンインストールやアップグレードされることはありません。
 
 ## 言語ランタイムの出どころ（2026-11 時点）
