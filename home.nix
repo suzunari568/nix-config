@@ -103,6 +103,26 @@
   };
 
   # ---------------------------------------------------------------
+  # mise (~/.config/mise/config.toml only)
+  # ---------------------------------------------------------------
+  # mise itself stays in Homebrew and is activated in initContent above,
+  # so no package and no shell integration come from Nix here.
+  # Versions are pinned to what was in use when this was written.
+  programs.mise = {
+    enable = true;
+    package = null;
+    enableBashIntegration = false;
+    enableFishIntegration = false;
+    enableNushellIntegration = false;
+    enableZshIntegration = false;
+    globalConfig.tools = {
+      java = "openjdk-25"; # was already in ~/.config/mise/config.toml
+      python = "3.13.0"; # was in ~/.tool-versions
+      go = "1.27.3"; # currently from Homebrew `go`; run `mise install go` after switching
+    };
+  };
+
+  # ---------------------------------------------------------------
   # git (written to ~/.config/git/config)
   # ---------------------------------------------------------------
   programs.git = {
