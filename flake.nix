@@ -20,6 +20,15 @@
       url = "https://flakehub.com/f/DeterminateSystems/determinate/3";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # ---- ホームラボ（NixOS）用 ----
+    # NixOS マシンは Mac とは別の nixpkgs（NixOS のテストを通った安定版チャンネル）を使う。
+    # Mac 側の `nix flake update nixpkgs` でサーバーが動かないように、ロックも別にしている。
+    nixpkgs-nixos.url = "github:NixOS/nixpkgs/nixos-26.05";
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs-nixos";
+    };
   };
 
   # Flake outputs
@@ -74,6 +83,27 @@
           )
         ];
       };
+
+      # ホームラボの NixOS マシン（docs/homelab.md）
+      #   base：node1、壊さない土台（dynabook GX83/MLE）
+      #   lab ：node2、壊していい実験機（Dell Inspiron 7300）
+      nixosConfigurations =
+        let
+          mkHost =
+            host:
+            inputs.nixpkgs-nixos.lib.nixosSystem {
+              specialArgs = { inherit username; };
+              modules = [
+                inputs.disko.nixosModules.disko
+                ./modules/nixos/common.nix
+                ./hosts/${host}/configuration.nix
+              ];
+            };
+        in
+        {
+          base = mkHost "base";
+          lab = mkHost "lab";
+        };
 
       # nix-darwin module outputs
       darwinModules = {
