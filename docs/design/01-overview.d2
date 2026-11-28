@@ -1,0 +1,118 @@
+# 図 1：全体（C4 のコンテキスト図にあたる）
+# どの機械がどこにつながっているか。インターネットからは何も受け付けない。
+...@_style
+
+title: |md
+  # ホームラボ全体
+  家の LAN に 2 台（有線・DHCP）。使うのは Tailscale の tailnet の中だけで、インターネットには公開しない。
+| {near: top-center}
+
+direction: down
+
+outside: 家の外 {
+  class: group
+
+  internet: インターネット {
+    class: ext
+    shape: cloud
+  }
+
+  ts-cp: |md
+    **Tailscale の管理サーバー / DERP 中継**\
+    login.tailscale.com など（Tailscale 社が運営）\
+    鍵の配布 · MagicDNS の設定 · 直接つながらないときの中継
+  | {class: ext}
+}
+
+devices: 手元の端末 {
+  class: group
+  direction: right
+
+  mac: |md
+    ### Mac
+    nix-config（このリポジトリ）\
+    デプロイ · SSH · ブラウザ
+  | {class: ext}
+  iphone: |md
+    ### iPhone
+    Tailscale アプリ\
+    Grafana などを見る
+  | {class: ext}
+}
+
+tailnet: |md
+  ## tailnet（Tailscale）
+  WireGuard で暗号化した網 · 100.64.0.0/10\
+  **MagicDNS** 100.100.100.100:53\
+  名前：base / lab（= base.‹tailnet›.ts.net）\
+  NixOS の firewall は tailscale0 からを全部許可
+| {
+  class: now
+  shape: hexagon
+}
+
+home: 家の LAN {
+  class: group
+
+  router: |md
+    ### 家のルーター
+    DHCP · NAT\
+    ポート開放・ポートフォワードはしない
+  | {class: ext}
+
+  base: |md
+    ## base（node1）
+    **壊さない土台**\
+    dynabook GX83/MLE\
+    i7-10510U · RAM 8GB · NVMe 512GB\
+    NixOS 26.05
+
+    **今**：sshd · tailscaled · node exporter\
+    **これから**：DNS · Caddy · Prometheus · Grafana · バックアップ置き場
+  | {class: now}
+
+  lab: |md
+    ## lab（node2）
+    **壊していい実験機**\
+    Dell Inspiron 7300\
+    i7-1165G7 · RAM 8GB · NVMe 512GB\
+    NixOS 26.05
+
+    **今**：sshd · tailscaled · node exporter\
+    **これから**：incus（Ubuntu VM）· k3s · Postgres
+  | {class: now}
+
+  router -> base: "USB-LAN（有線、enx…）\nDHCP で IP" {class: e-now}
+  router -> lab: "USB-LAN（有線、enx…）\nDHCP で IP" {class: e-now}
+
+  base -> lab: "Prometheus が scrape 9100/tcp\nバックアップ（Q6）\n※ tailnet 経由" {class: e-plan}
+}
+
+# tailnet への参加（各機械の tailscaled）
+devices.mac <-> tailnet: "WireGuard" {class: e-ext}
+devices.iphone <-> tailnet: "WireGuard" {class: e-ext}
+tailnet <-> home.base: "WireGuard 41641/udp" {class: e-now}
+tailnet <-> home.lab: "WireGuard 41641/udp" {class: e-now}
+
+# 外向きだけ
+home.router -> outside.internet: "外向きだけ（NAT）\n入ってくる接続は受け付けない" {class: e-ext}
+tailnet -> outside.ts-cp: "制御 443/tcp HTTPS（外向き）\nDERP 443/tcp · STUN 3478/udp" {class: e-ext}
+
+uses: |md
+  ### tailnet の上でやること
+  - Mac → base / lab：**SSH 22/tcp**（`ssh shuya@base`）とデプロイ
+  - Mac・iPhone → base：**HTTPS 443/tcp**（Caddy → Grafana など）
+  - Mac・iPhone → base：**DNS 53**（どの端末に効かせるかは Q2）
+  - base → lab：**9100/tcp** の scrape、バックアップ
+| {class: note}
+
+no-inbound: |md
+  ### 公開しないこと
+  - ルーターでポートを開けない
+  - Tailscale Funnel は使わない
+  - LAN 側で開くのは 22/tcp と 41641/udp だけ\
+    （22 は初回インストール用。その後も開いたまま）
+| {class: note}
+
+uses -> tailnet: "" {style: {stroke: "#F9A825"; stroke-dash: 2}}
+no-inbound -> home.router: "" {style: {stroke: "#F9A825"; stroke-dash: 2}}

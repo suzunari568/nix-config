@@ -1,0 +1,146 @@
+# 図 2：base の中（C4 のコンテナ図にあたる）
+# 今あるもの（PR #3）と、後の PR で足すサービス・データの置き場。
+...@_style
+
+title: |md
+  # base（node1）の中
+  壊さない土台。DNS・HTTPS の入口・監視・バックアップの置き場を担う。ポートは全部 tailnet の中だけ。
+| {near: top-center}
+
+direction: down
+
+clients: 使う側（tailnet） {
+  class: group
+  mac: "Mac" {class: ext; shape: rectangle}
+  iphone: "iPhone" {class: ext; shape: rectangle}
+}
+
+lab: |md
+  ### lab（node2）
+  node exporter 9100/tcp\
+  Postgres など（図 3）
+| {class: now}
+
+upstream: |md
+  **上流 DNS**\
+  どこに聞くかは Q2
+| {class: tbd}
+
+base: "base（node1）· NixOS 26.05 · dynabook GX83/MLE · i7-10510U · 8GB" {
+  class: host
+
+  nic: ネットワークの入口 {
+    class: group
+
+    tailscale0: |md
+      **tailscale0**（100.x.y.z）\
+      firewall：**全部許可**\
+      名前：base / base.‹tailnet›.ts.net
+    | {class: now}
+    enx: |md
+      **enx…**（USB-LAN、DHCP）\
+      firewall：**22/tcp と 41641/udp だけ**
+    | {class: now}
+  }
+
+  now: "今あるもの（PR #3）" {
+    class: group
+
+    sshd: |md
+      ### sshd
+      **22/tcp** · 鍵だけ · root 不可\
+      デプロイ（nixos-rebuild）もここから
+    | {class: now}
+    tailscaled: |md
+      ### tailscaled
+      **41641/udp**（WireGuard）\
+      /run/tailscale/tailscaled.sock
+    | {class: now}
+    node: |md
+      ### node exporter
+      **9100/tcp** · systemd collector あり
+    | {class: now}
+  }
+
+  svc: これから（後の PR） {
+    class: group
+
+    caddy: |md
+      ### Caddy
+      **443/tcp HTTPS**\
+      証明書：Tailscale（Let's Encrypt）· 取り方は Q5\
+      URL の分け方（パス / ポート）は Q3
+    | {class: tbd}
+
+    dns: |md
+      ### DNS フィルタ
+      AdGuard Home（Blocky と比べて決める：Q1）\
+      **53/udp · 53/tcp**\
+      管理画面のポートは Q4
+    | {class: tbd}
+
+    prom: |md
+      ### Prometheus
+      **9090/tcp**\
+      データ：/var/lib/prometheus2\
+      保持期間・間隔は Q10
+    | {class: plan}
+
+    grafana: |md
+      ### Grafana
+      **3000/tcp**（初期値）\
+      データ：/var/lib/grafana（SQLite）\
+      名前・URL は Q3
+    | {class: tbd}
+
+    backup: |md
+      ### バックアップの受け口
+      道具は Q6（restic / borg / btrbk …）\
+      置き場：**/srv**（@data）
+    | {class: tbd}
+  }
+
+  disk: "NVMe 512GB · /dev/nvme0n1 · GPT（disko.nix）" {
+    class: group
+    direction: right
+
+    esp: "ESP 1GiB · vfat\n/boot（systemd-boot）" {class: disk}
+    root: "@root → /\n（/var/lib もここ）" {class: disk}
+    home: "@home → /home" {class: disk}
+    nix: "@nix → /nix" {class: disk}
+    log: "@log → /var/log" {class: disk}
+    data: "@data → /srv\nバックアップ置き場" {class: disk}
+    fs: |md
+      btrfs · compress=zstd,noatime\
+      スナップショットの道具は Q17
+    | {class: note}
+  }
+}
+
+# 使う側 → tailnet → サービス
+clients.mac -> base.nic.tailscale0: "SSH 22/tcp · HTTPS 443/tcp" {class: e-now}
+clients.iphone -> base.nic.tailscale0: "HTTPS 443/tcp · DNS 53/udp" {class: e-plan}
+base.nic.enx -> base.now.sshd: "22/tcp（初回インストール・\ntailnet が使えないとき）" {class: e-now}
+base.nic.enx -> base.now.tailscaled: "41641/udp" {class: e-now}
+base.nic.tailscale0 -> base.now.sshd: "22/tcp" {class: e-now}
+base.nic.tailscale0 -> base.svc.caddy: "443/tcp" {class: e-plan}
+base.nic.tailscale0 -> base.svc.dns: "53/udp·tcp DNS" {class: e-plan}
+
+# Caddy の後ろ
+base.now.tailscaled -> base.svc.caddy: "TLS 証明書\n（tailscaled.sock 経由）" {class: e-tbd}
+base.svc.caddy -> base.svc.grafana: "HTTP 3000/tcp\n（reverse proxy）" {class: e-plan}
+base.svc.caddy -> base.svc.dns: "HTTP 管理画面（Q4）" {class: e-tbd}
+base.svc.caddy -> base.svc.prom: "HTTP 9090/tcp\n（出すかは Q3）" {class: e-tbd}
+
+# 監視
+base.svc.grafana -> base.svc.prom: "PromQL\nHTTP 9090/tcp" {class: e-plan}
+base.svc.prom -> base.now.node: "scrape\nHTTP 9100/tcp" {class: e-plan}
+base.svc.prom -> lab: "scrape HTTP 9100/tcp\n（tailnet、名前 lab）" {class: e-plan}
+
+# DNS
+base.svc.dns -> upstream: "53/udp か DoH 443/tcp（Q2）" {class: e-tbd}
+
+# バックアップ
+lab -> base.now.sshd: "バックアップを送る\nSSH 22/tcp（Q6）" {class: e-tbd}
+base.now.sshd -> base.svc.backup: "" {class: e-tbd}
+base.svc.backup -> base.disk.data: "書き込み" {class: e-tbd}

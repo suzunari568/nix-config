@@ -1,0 +1,47 @@
+# 図 4：デプロイの流れ（初回は nixos-anywhere + disko、2 回目から nixos-rebuild --target-host）
+# 手順の細かいところは docs/homelab.md。ここでは「誰が誰に何で話すか」を並べる。
+...@_style
+
+title: |md
+  # デプロイの流れ
+  Mac の nix-config（このリポジトリ）から入れる。初回は LAN 経由、2 回目からは tailnet 経由。lab に先に入れて、よければ base に入れる。
+| {near: top-center}
+
+seq: "" {
+  shape: sequence_diagram
+
+  owner: "オーナー" {shape: person; class: ext}
+  mac: "Mac\nnix-config" {class: ext}
+  target: "base / lab\n（USB のインストーラー → 入れた NixOS）" {class: now}
+  cache: "cache.nixos.org" {class: ext}
+  ts: "Tailscale 管理画面" {class: ext}
+  gh: "GitHub\nsuzunari568/nix-config" {class: ext}
+
+  first: "初回：nixos-anywhere + disko（ディスクは全部消える）" {
+    owner -> target: "USB から起動 · passwd（一時的）" {class: e-ext}
+    mac -> target: "ssh-copy-id · lsblk で nvme0n1 を確認\nSSH 22/tcp（LAN、192.168.x.x）" {class: e-now}
+    mac -> target: "nixos-anywhere --flake .#base --build-on remote\n--generate-hardware-config …\nSSH 22/tcp（LAN）" {class: e-now}
+    target -> target: "kexec でインストーラー環境へ\ndisko：GPT + ESP + btrfs（@root @home @nix @log @data）" {class: e-now}
+    target -> cache: "ストアパスを取る · HTTPS 443/tcp" {class: e-ext}
+    target -> target: "ビルド · インストール · nixos-generate-config" {class: e-now}
+    target -> mac: "hardware-configuration.nix（SSH）" {class: e-now}
+    target -> target: "再起動（USB を抜く）" {class: e-now}
+    mac -> gh: "hardware-configuration.nix をコミットして push\nHTTPS 443/tcp" {class: e-ext}
+  }
+
+  join: "tailnet に入れる" {
+    mac -> target: "ssh shuya@192.168.x.x 'sudo tailscale up'\nSSH 22/tcp（LAN）" {class: e-now}
+    target -> ts: "ログイン URL · 443/tcp" {class: e-ext}
+    owner -> ts: "Mac のブラウザで承認 · Key expiry を無効" {class: e-ext}
+  }
+
+  again: "2 回目から：nixos-rebuild --target-host" {
+    mac -> mac: "*.nix を直す · nix eval で評価だけ確かめる" {class: e-now}
+    mac -> target: "nixos-rebuild switch --flake .#lab\n--target-host shuya@lab --build-host shuya@lab --sudo\nSSH 22/tcp（tailnet、MagicDNS）" {class: e-now}
+    target -> cache: "ストアパスを取る · HTTPS 443/tcp" {class: e-ext}
+    target -> target: "ビルド → sudo で switch（新しい世代）" {class: e-now}
+    mac -> target: "lab でよければ base にも同じことをする" {class: e-now}
+    target -> target: "だめなら nixos-rebuild switch --rollback\nか起動メニューで前の世代" {class: e-now}
+    mac -> gh: "コミットして push · 443/tcp" {class: e-ext}
+  }
+}

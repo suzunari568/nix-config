@@ -1,0 +1,59 @@
+# 全部の図で使う見た目の定義。各図の先頭で `...@_style` として読み込む。
+#   now  = 今あるもの（PR #3）：緑・実線
+#   plan = これから：青・破線
+#   tbd  = これから、かつ中身が未決（docs/homelab-design.md の Q 番号を付ける）：橙・細かい破線
+#   ext  = 家の外・人・端末：灰
+classes: {
+  host: {
+    style: {fill: "#FAFAFA"; stroke: "#37474F"; stroke-width: 2; border-radius: 8; font-size: 22; bold: true}
+  }
+  group: {
+    style: {fill: "#FFFFFF"; stroke: "#B0BEC5"; border-radius: 6; font-size: 16}
+  }
+  now: {
+    shape: rectangle
+    style: {fill: "#E8F5E9"; stroke: "#2E7D32"; stroke-width: 2; border-radius: 4}
+  }
+  plan: {
+    shape: rectangle
+    style: {fill: "#E3F2FD"; stroke: "#1565C0"; stroke-width: 2; stroke-dash: 5; border-radius: 4}
+  }
+  tbd: {
+    shape: rectangle
+    style: {fill: "#FFF3E0"; stroke: "#E65100"; stroke-width: 2; stroke-dash: 2; border-radius: 4}
+  }
+  ext: {
+    shape: rectangle
+    style: {fill: "#F5F5F5"; stroke: "#757575"; stroke-width: 1; border-radius: 4}
+  }
+  disk: {
+    shape: cylinder
+    style: {fill: "#EDE7F6"; stroke: "#5E35B1"; stroke-width: 1}
+  }
+  note: {
+    shape: page
+    style: {fill: "#FFFDE7"; stroke: "#F9A825"; font-size: 13}
+  }
+  e-now: {
+    style: {stroke: "#2E7D32"; stroke-width: 2; font-size: 13; font-color: "#1B5E20"}
+  }
+  e-plan: {
+    style: {stroke: "#1565C0"; stroke-width: 2; stroke-dash: 5; font-size: 13; font-color: "#0D47A1"}
+  }
+  e-tbd: {
+    style: {stroke: "#E65100"; stroke-width: 2; stroke-dash: 2; font-size: 13; font-color: "#BF360C"}
+  }
+  e-ext: {
+    style: {stroke: "#757575"; stroke-width: 1; stroke-dash: 3; font-size: 13; font-color: "#424242"}
+  }
+}
+
+vars: {
+  d2-legend: {
+    l-now: "今あるもの（PR #3）" {shape: rectangle; style: {fill: "#E8F5E9"; stroke: "#2E7D32"; stroke-width: 2}}
+    l-plan: "これから（後の PR）" {shape: rectangle; style: {fill: "#E3F2FD"; stroke: "#1565C0"; stroke-width: 2; stroke-dash: 5}}
+    l-tbd: "これから・中身が未決（Q番号 → docs）" {shape: rectangle; style: {fill: "#FFF3E0"; stroke: "#E65100"; stroke-width: 2; stroke-dash: 2}}
+    l-ext: "家の外・端末・人" {shape: rectangle; style: {fill: "#F5F5F5"; stroke: "#757575"}}
+    l-now -> l-plan: "線の色と破線も同じ意味" {style: {stroke: "#1565C0"; stroke-dash: 5}}
+  }
+}
