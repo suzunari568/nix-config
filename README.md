@@ -3,6 +3,8 @@
 Apple Silicon の Mac（ユーザー `shuya`、ホスト設定 `shuya-aarch64-darwin`）を nix-darwin + home-manager + Homebrew で管理する設定です。
 通常は `/etc/nix-darwin` に clone して使います。
 
+ホームラボの NixOS マシン（`base`、`lab`）も同じ flake で管理しています。手順は [docs/homelab.md](docs/homelab.md) を見てください。
+
 ## 何をどこで管理しているか
 
 | 対象 | 管理先 | ファイル |

@@ -1,0 +1,87 @@
+# 図 6：バックアップの流れ（どのデータがどこへ行くか）
+...@_style
+
+title: |md
+  # バックアップの流れ
+  システムは flake から作り直せるので、守るのは**データ**だけ。置き場は base の /srv（@data）。道具・頻度・保持は未決（Q6〜Q9）。
+| {near: top-center}
+
+direction: right
+
+mac: |md
+  ### Mac
+  nix-config（このリポジトリ）
+| {class: ext}
+
+gh: |md
+  ### GitHub
+  suzunari568/nix-config\
+  **設定はここにあるので、機械は作り直せる**
+| {class: ext}
+
+lab: "lab（node2）" {
+  class: host
+
+  pg: |md
+    ### Postgres のデータ
+    pg_dump など（Q7）
+  | {class: tbd}
+  k3s: |md
+    ### k3s の状態
+    /var/lib/rancher/k3s\
+    守るか捨てるか（Q7）
+  | {class: tbd}
+  vm: |md
+    ### incus の Ubuntu VM
+    **使い捨て · バックアップしない**
+  | {class: plan}
+}
+
+base: "base（node1）" {
+  class: host
+
+  grafana: |md
+    ### Grafana
+    /var/lib/grafana（grafana.db）
+  | {class: tbd}
+  dns: |md
+    ### DNS の設定
+    AdGuard Home なら AdGuardHome.yaml（Q1）
+  | {class: tbd}
+  prom: |md
+    ### Prometheus の TSDB
+    守るか捨てるか（Q7）
+  | {class: tbd}
+  tool: |md
+    ### バックアップの道具
+    restic / borg / btrbk / rsync（Q6）\
+    頻度・保持期間（Q7）
+  | {class: tbd}
+  store: |md
+    ### /srv（@data）
+    バックアップの置き場
+  | {class: plan; shape: cylinder}
+  snap: |md
+    ### btrfs スナップショット
+    同じディスクの中（Q17）\
+    実験前に戻すため。ディスク故障には効かない
+  | {class: tbd}
+
+  grafana -> tool: "ファイル" {class: e-tbd}
+  dns -> tool: "ファイル" {class: e-tbd}
+  prom -> tool: "（候補）" {class: e-tbd}
+  tool -> store: "書き込み" {class: e-tbd}
+  store -> snap: "" {class: e-tbd}
+}
+
+offsite: |md
+  ### 家の外のコピー
+  クラウド・別の場所に置くか（Q8）\
+  今は同じ家・base 1 台・1 ディスクだけ
+| {class: tbd}
+
+mac -> gh: "git push · HTTPS 443/tcp" {class: e-now}
+lab.pg -> base.tool: "SSH 22/tcp（tailnet）" {class: e-tbd}
+lab.k3s -> base.tool: "SSH 22/tcp（候補）" {class: e-tbd}
+base.store -> offsite: "（Q8）" {class: e-tbd}
+base.store -> lab: "base 自身のデータを lab にも置くか（Q9）" {class: e-tbd}

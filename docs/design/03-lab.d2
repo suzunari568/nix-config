@@ -1,0 +1,150 @@
+# 図 3：lab の中（C4 のコンテナ図にあたる）
+# 壊していい実験機。incus の Ubuntu VM、k3s、Postgres を後の PR で足す。
+...@_style
+
+title: |md
+  # lab（node2）の中
+  壊していい実験機。変更はまず lab に入れて、問題がなければ base に入れる。ポートは全部 tailnet の中だけ。
+| {near: top-center}
+
+direction: down
+
+clients: 使う側（tailnet） {
+  class: group
+  direction: right
+  mac: |md
+    ### Mac
+    ssh · incus · kubectl · psql
+  | {class: ext}
+}
+
+base: |md
+  ### base（node1）
+  Prometheus（scrape）\
+  バックアップの受け口（/srv）
+| {class: now}
+
+internet: |md
+  **インターネット**\
+  apt のミラー · コンテナイメージ
+| {class: ext; shape: cloud}
+
+lab: "lab（node2）· NixOS 26.05 · Dell Inspiron 7300 · i7-1165G7 · 8GB" {
+  class: host
+
+  nic: ネットワークの入口 {
+    class: group
+
+    tailscale0: |md
+      **tailscale0**（100.x.y.z）\
+      firewall：**全部許可**\
+      名前：lab / lab.‹tailnet›.ts.net
+    | {class: now}
+    enx: |md
+      **enx…**（USB-LAN、DHCP）\
+      firewall：**22/tcp と 41641/udp だけ**
+    | {class: now}
+  }
+
+  now: "今あるもの（PR #3）" {
+    class: group
+
+    sshd: |md
+      ### sshd
+      **22/tcp** · 鍵だけ · root 不可
+    | {class: now}
+    tailscaled: |md
+      ### tailscaled
+      **41641/udp**（WireGuard）
+    | {class: now}
+    node: |md
+      ### node exporter
+      **9100/tcp**
+    | {class: now}
+  }
+
+  incus: "incus（後の PR）" {
+    class: plan
+
+    incusd: |md
+      ### incusd
+      ふだんは unix socket（ssh して incus コマンド）\
+      リモート API **8443/tcp** を開くかは Q14
+    | {class: plan}
+
+    br: |md
+      **incusbr0**（NAT のブリッジ）\
+      VM → 外は NAT。LAN に出すかは Q14
+    | {class: tbd}
+
+    vm1: |md
+      ### Ubuntu VM
+      使い捨て · apt と systemd の練習\
+      KVM（kvm-intel）で動かす
+    | {class: plan; style.multiple: true}
+
+    incusd -> vm1: "作る · 消す · スナップショット" {class: e-plan}
+    vm1 -> br: "" {class: e-plan}
+  }
+
+  k3s: "k3s（1 ノード、後の PR）" {
+    class: plan
+
+    api: |md
+      ### k3s server + agent
+      API **6443/tcp** · kubelet **10250/tcp**\
+      containerd · flannel
+    | {class: plan}
+    ingress: |md
+      **同梱の Traefik / ServiceLB**\
+      使うか止めるかは Q13
+    | {class: tbd}
+    api -> ingress: "" {class: e-tbd}
+  }
+
+  pg: |md
+    ### Postgres
+    **5432/tcp**\
+    どこで動かすか（NixOS に直接 / k3s / incus）は Q12
+  | {class: tbd}
+
+  disk: "NVMe 512GB · /dev/nvme0n1 · GPT（disko.nix）" {
+    class: group
+    direction: right
+
+    esp: "ESP 1GiB · vfat\n/boot" {class: disk}
+    root: "@root → /\n（/var/lib）" {class: disk}
+    home: "@home → /home" {class: disk}
+    nix: "@nix → /nix" {class: disk}
+    log: "@log → /var/log" {class: disk}
+    data: "@data → /srv\nincus · k3s のデータ（Q14・Q16）" {class: disk}
+  }
+
+  mem: |md
+    **RAM 8GB をどう分けるか**（Q15）\
+    k3s · Postgres · VM を同時に動かすと足りなくなりやすい\
+    zram スワップあり（PR #3）
+  | {class: note}
+}
+
+# 使う側
+clients.mac -> lab.nic.tailscale0: "SSH 22/tcp · kubectl 6443/tcp · psql 5432/tcp" {class: e-now}
+lab.nic.tailscale0 -> lab.now.sshd: "22/tcp" {class: e-now}
+lab.nic.enx -> lab.now.sshd: "22/tcp（初回インストール）" {class: e-now}
+lab.nic.enx -> lab.now.tailscaled: "41641/udp" {class: e-now}
+lab.now.sshd -> lab.incus.incusd: "incus コマンド\n（unix socket）" {class: e-plan}
+lab.nic.tailscale0 -> lab.k3s.api: "kubectl\nHTTPS 6443/tcp" {class: e-plan}
+lab.nic.tailscale0 -> lab.pg: "psql 5432/tcp\n（出すかは Q12）" {class: e-tbd}
+
+# 外へ
+lab.incus.br -> internet: "apt 80·443/tcp\n（NAT、enx 経由）" {class: e-plan}
+lab.k3s.api -> internet: "イメージの pull\n443/tcp" {class: e-plan}
+
+# base との関係
+base -> lab.nic.tailscale0: "scrape HTTP 9100/tcp" {class: e-plan}
+lab.nic.tailscale0 -> lab.now.node: "9100/tcp" {class: e-plan}
+lab.pg -> base: "ダンプを送る（pg_dump など）\nSSH 22/tcp（Q6・Q7）" {class: e-tbd}
+
+# データの置き場
+lab.incus.incusd -> lab.disk.data: "ストレージプール（btrfs）\n置き方は Q14" {class: e-tbd}
+lab.k3s.api -> lab.disk.root: "/var/lib/rancher/k3s\n（/srv に寄せるかは Q16）" {class: e-tbd}

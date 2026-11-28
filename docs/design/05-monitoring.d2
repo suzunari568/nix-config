@@ -1,0 +1,77 @@
+# 図 5：監視の流れ（Prometheus がどこを見るか）
+...@_style
+
+title: |md
+  # 監視の流れ
+  base の Prometheus が、両方の node exporter を tailnet 越しに読みにいく（pull）。Grafana は Caddy の後ろから見る。
+| {near: top-center}
+
+direction: right
+
+viewer: 見る人 {
+  class: group
+  mac: "Mac（ブラウザ）" {class: ext; shape: rectangle}
+  iphone: "iPhone（Safari）" {class: ext; shape: rectangle}
+}
+
+base: "base（node1）" {
+  class: host
+
+  caddy: |md
+    ### Caddy
+    **443/tcp HTTPS**\
+    https://base.‹tailnet›.ts.net/…（分け方は Q3）
+  | {class: tbd}
+  grafana: |md
+    ### Grafana
+    **3000/tcp**\
+    データソース：Prometheus\
+    ダッシュボード：Node Exporter Full など（Q10）
+  | {class: tbd}
+  prom: |md
+    ### Prometheus
+    **9090/tcp**\
+    scrape 間隔・保持期間は Q10\
+    TSDB：/var/lib/prometheus2（@root）
+  | {class: plan}
+  node: |md
+    ### node exporter（base）
+    **9100/tcp** · systemd collector
+  | {class: now}
+  alert: |md
+    ### アラート
+    Alertmanager を入れるか · 通知先（Q11）
+  | {class: tbd}
+
+  caddy -> grafana: "HTTP 3000/tcp" {class: e-plan}
+  grafana -> prom: "PromQL · HTTP 9090/tcp" {class: e-plan}
+  prom -> node: "scrape · HTTP 9100/tcp\nlocalhost" {class: e-plan}
+  prom -> prom: "自分自身 · 9090/tcp" {class: e-plan}
+  prom -> alert: "ルールに当たったら（Q11）" {class: e-tbd}
+}
+
+lab: "lab（node2）" {
+  class: host
+
+  node: |md
+    ### node exporter（lab）
+    **9100/tcp** · systemd collector
+  | {class: now}
+  more: |md
+    ### ほかに読むか（Q10）
+    postgres_exporter 9187/tcp\
+    k3s の metrics · incus の metrics
+  | {class: tbd}
+}
+
+viewer.mac -> base.caddy: "HTTPS 443/tcp（tailnet）" {class: e-plan}
+viewer.iphone -> base.caddy: "HTTPS 443/tcp（tailnet）" {class: e-plan}
+base.prom -> lab.node: "scrape · HTTP 9100/tcp\ntailnet（名前 lab）" {class: e-plan}
+base.prom -> lab.more: "（候補）" {class: e-tbd}
+
+watcher: |md
+  ### base が落ちたら？
+  監視しているのが base なので、base が止まると気づけない。\
+  外から見張るか（Q11）
+| {class: note}
+watcher -> base: "" {style: {stroke: "#F9A825"; stroke-dash: 2}}
