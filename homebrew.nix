@@ -21,10 +21,6 @@
         name = "stablyai/orca";
         trusted = true;
       }
-      {
-        name = "yksr-melt/meltype";
-        clone_target = "https://github.com/yksr-melt/Meltype.git";
-      }
     ];
 
     # Formulas kept in Homebrew (everything else moved to home.packages).
@@ -61,7 +57,6 @@
       "google-japanese-ime"
       "grok-bot"
       "keycastr"
-      "yksr-melt/meltype/meltype"
       "notion"
       "obs"
       "obsidian"
